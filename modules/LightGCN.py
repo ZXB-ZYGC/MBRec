@@ -52,7 +52,6 @@ class GraphConv(nn.Module):
         embs = torch.stack(embs, dim=1)  # [n_entity, n_hops+1, emb_size]
         return embs[:self.n_users, :], embs[self.n_users:, :]
 
-
 class LightGCN(nn.Module):
     def __init__(self, data_config, args_config, adj_mat_p, adj_mat_c, adj_mat_v):
         super(LightGCN, self).__init__()
@@ -96,6 +95,10 @@ class LightGCN(nn.Module):
 
         self.lear3 = nn.Linear(self.emb_size * 3, self.emb_size)
         self.lear4 = nn.Linear(self.emb_size, self.emb_size)
+        self.w = torch.nn.Parameter(torch.FloatTensor([0.4,0.3,0.3]), requires_grad=True)
+        self.weightu = torch.nn.Parameter(torch.FloatTensor(self.emb_size, self.emb_size))
+        self.weighti = torch.nn.Parameter(torch.FloatTensor(self.emb_size*3, self.emb_size))
+        self.weightin = torch.nn.Parameter(torch.FloatTensor(self.emb_size * 3, self.emb_size))
 
     def _init_weight(self):
         initializer = nn.init.xavier_uniform_
@@ -156,7 +159,6 @@ class LightGCN(nn.Module):
                                               edge_dropout=self.edge_dropout,
                                               mess_dropout=self.mess_dropout)
 
-
         batch_size = len(user)
 
         pachas_u = pachas_uall[user]
@@ -170,8 +172,19 @@ class LightGCN(nn.Module):
         view_u = view_uall[user]
         view_i_pos = view_iall[pos_item]
         view_i_neg = view_iall[neg_item[:, :self.K]]
+        #print(type_num)
 
-        u_emb = torch.cat((pachas_u, cart_u, view_u), 2)
+        #u_emb = torch.cat((pachas_u, cart_u, view_u), 2)
+        #print(u_emb.size())
+       # print(type_num[0].unsqueeze(dim=1))
+       # print(pachas_u.squeeze(dim=0))
+        w0=self.w[0]*type_num[0].unsqueeze(dim=1).unsqueeze(dim=1)
+        w1=self.w[1]*type_num[1].unsqueeze(dim=1).unsqueeze(dim=1)
+        w2=self.w[2]*type_num[2].unsqueeze(dim=1).unsqueeze(dim=1)
+
+        u_emb = w0.mul(pachas_u) + w1.mul(cart_u) + w2.mul(view_u)
+        #print(u_emb.size())
+
         pos_i_emb = torch.cat((pachas_i_pos, cart_i_pos, view_i_pos), 2)
         neg_i_emb = torch.cat((pachas_i_neg, cart_i_neg, view_i_neg), 3)
 
@@ -246,10 +259,12 @@ class LightGCN(nn.Module):
         # neg_gcn_embs: [batch_size, K, n_hops+1, channel]
 
         batch_size = user_gcn_emb.shape[0]
-
-        u_e = self.pooling(user_gcn_emb)
-        pos_e = self.pooling(pos_gcn_embs)
-        neg_e = self.pooling(neg_gcn_embs.view(-1, neg_gcn_embs.shape[2], neg_gcn_embs.shape[3])).view(batch_size, self.K, -1)
+        print(user_gcn_emb.size())
+        u_e = self.pooling(user_gcn_emb).mm(self.weightu)
+        #print(u_e.size())
+        pos_e = self.pooling(pos_gcn_embs).mm(self.weighti)
+        #print(pos_e.size())
+        neg_e = self.pooling(neg_gcn_embs.view(-1, neg_gcn_embs.shape[2], neg_gcn_embs.shape[3])).view(batch_size, self.K, -1).matmul(self.weightin)
 
 
         pos_scores = torch.sum(torch.mul(u_e, pos_e), axis=1)

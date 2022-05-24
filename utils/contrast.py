@@ -15,7 +15,6 @@ class Contrast(nn.Module):
         return sim_matrix
 
     def forward(self, z_mp, z_sc, pos):
-
         matrix_mp2sc = self.sim(z_mp, z_sc)
         matrix_sc2mp = matrix_mp2sc.t()
 

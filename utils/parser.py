@@ -6,7 +6,7 @@ def parse_args():
 
     # ===== dataset ===== #
     parser.add_argument("--dataset", nargs="?", default="Beibei",
-                        help="Choose a dataset:[Beibei,Taobao]")
+                        help="")
     parser.add_argument(
         "--data_path", nargs="?", default="data/", help="Input data path."
     )
@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument("--n_negs", type=int, default=64, help="number of candidate negative")
     parser.add_argument("--pool", type=str, default='mean', help="[concat, mean, sum, final]")
 
-    parser.add_argument("--cuda", type=bool, default=True, help="use gpu or not")
+    parser.add_argument("--cuda", type=bool, default=False, help="use gpu or not")
     parser.add_argument("--gpu_id", type=int, default=2, help="gpu id")
     parser.add_argument('--Ks', nargs='?', default='[20, 40, 60]',
                         help='Output sizes of every layer')
