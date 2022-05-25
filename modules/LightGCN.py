@@ -181,8 +181,10 @@ class LightGCN(nn.Module):
         w0=self.w[0]*type_num[0].unsqueeze(dim=1).unsqueeze(dim=1)
         w1=self.w[1]*type_num[1].unsqueeze(dim=1).unsqueeze(dim=1)
         w2=self.w[2]*type_num[2].unsqueeze(dim=1).unsqueeze(dim=1)
-
-        u_emb = w0.mul(pachas_u) + w1.mul(cart_u) + w2.mul(view_u)
+        w_0 = torch.exp(w0)/(torch.exp(w0)+torch.exp(w1)+torch.exp(w2))
+        w_1 = torch.exp(w1) / (torch.exp(w0) + torch.exp(w1) + torch.exp(w2))
+        w_2 = torch.exp(w2) / (torch.exp(w0) + torch.exp(w1) + torch.exp(w2))
+        u_emb = w_0.mul(pachas_u) + w_1.mul(cart_u) + w_2.mul(view_u)
         #print(u_emb.size())
 
         pos_i_emb = torch.cat((pachas_i_pos, cart_i_pos, view_i_pos), 2)
